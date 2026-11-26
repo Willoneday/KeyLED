@@ -1,2 +1,13 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+# 批处理必须用 CRLF：cmd.exe 用 LF 会拆错行
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# 二进制素材不做换行转换
+*.png binary
+*.gif binary
+*.mp4 binary
+*.ico binary
+*.bin binary
+*.exe binary
+
+*.ps1 text eol=crlf

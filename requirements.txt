@@ -1,0 +1,10 @@
+# 从源码运行和打包所需的第三方库，与 app/build-exe.bat 安装的是同一组。
+# 实测版本（2026-11，Python 3.13）：
+#   pywebview 5.4、pystray 0.19.5、Pillow 13.0.0、numpy 2.5.5、
+#   PyAudioWpatch 0.2.12.9、pyinstaller 6.22.3
+pywebview
+pystray
+Pillow
+numpy
+PyAudioWpatch
+pyinstaller

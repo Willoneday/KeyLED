@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.log
+*.jsonl
+
+# build artefacts (KeyLED.exe itself IS committed, so a clone runs out of the box)
+build/
+dist/
+*.spec
+
+# WebView2 user data folder, created next to the exe at run time
+*.WebView2/

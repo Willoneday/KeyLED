@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KeyLED</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --card: rgba(28, 34, 47, .72);
+    --cardhi: rgba(52, 64, 88, .85);
+    --line: rgba(128, 156, 200, .13);
+    --txt: #e8eef8;
+    --dim: #8a97ad;
+    --acc: #5b8cff;
+    --ok: #5ee0a0;
+    --warn: #ff9a4d;
+  }
+  html, body { height: 100%; }
+  body::before {
+    content: ""; position: fixed; inset: -15%; z-index: 0; pointer-events: none;
+    background:
+      radial-gradient(closest-side, rgba(91,140,255,.22), rgba(91,140,255,0) 72%) 20% 24% / 54% 54% no-repeat,
+      radial-gradient(closest-side, rgba(176,107,255,.17), rgba(176,107,255,0) 72%) 78% 20% / 48% 48% no-repeat,
+      radial-gradient(closest-side, rgba(94,224,160,.10), rgba(94,224,160,0) 74%) 64% 90% / 46% 46% no-repeat;
+    filter: blur(30px);
+    animation: aurora 34s ease-in-out infinite alternate;
+  }
+  @keyframes aurora {
+    from { transform: translate(-1.5%, -1%) scale(1); }
+    to   { transform: translate(1.8%, 1.6%) scale(1.07); }
+  }
+  body {
+    background:
+      radial-gradient(1100px 540px at 10% -10%, #1c2743 0%, rgba(28,39,67,0) 62%),
+      radial-gradient(900px 520px at 95% 0%, #241f3d 0%, rgba(36,31,61,0) 58%),
+      radial-gradient(800px 600px at 50% 120%, #101a2a 0%, rgba(16,26,42,0) 70%),
+      linear-gradient(180deg, #0c0f16 0%, #090c11 100%);
+    color: var(--txt);
+    font: 13px/1.5 "Microsoft YaHei UI", "Segoe UI", system-ui, sans-serif;
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .app { position: relative; z-index: 1; display: flex; flex-direction: column; height: 100vh; padding: 0 18px 14px; }
+
+  /* ---------- header ---------- */
+  header {
+    display: flex; align-items: center; gap: 14px;
+    height: 56px; flex: 0 0 56px;
+    border-bottom: 1px solid var(--line);
+    cursor: default;
+  }
+  .brand b {
+    font-size: 18px; font-weight: 700; letter-spacing: .4px; display: block; line-height: 1.15;
+    background: linear-gradient(92deg, #cfe0ff, #8fb4ff 55%, #b9a6ff);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .brand span { font-size: 9.5px; color: #5d6a80; letter-spacing: 1.6px; }
+  .status { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--dim); }
+  .status i {
+    width: 7px; height: 7px; border-radius: 50%; background: var(--warn);
+    box-shadow: 0 0 8px rgba(255,154,77,.7);
+  }
+  .status.on i { background: var(--ok); box-shadow: 0 0 9px rgba(94,224,160,.75); }
+  .status.on { color: var(--ok); }
+
+  .acts { margin-left: auto; display: flex; gap: 6px; }
+  .acts button {
+    height: 26px; padding: 0 11px; border-radius: 8px; cursor: pointer;
+    background: linear-gradient(180deg, rgba(46, 56, 76, .92), rgba(26, 33, 46, .92));
+    color: var(--dim); border: 1px solid var(--line); font: inherit; font-size: 12px;
+    transition: .14s; white-space: nowrap;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 1px 2px rgba(0,0,0,.32);
+  }
+  .acts button:active, .mini:active { transform: translateY(1px); box-shadow: inset 0 2px 5px rgba(0,0,0,.4); }
+  .acts button:hover { border-color: rgba(140,170,220,.35); color: var(--txt); }
+  .acts button.on { color: var(--acc); border-color: rgba(91,140,255,.55); background: rgba(40,58,96,.6); }
+  .acts button.warn { color: var(--ok); border-color: rgba(94,224,160,.5); }
+
+  .winbtns { display: flex; gap: 3px; margin-left: 8px; }
+  .winbtns button {
+    width: 32px; height: 26px; border: none; border-radius: 7px; cursor: pointer;
+    background: transparent; color: #6f7d94; font: inherit; font-size: 13px; line-height: 1;
+    transition: .12s;
+  }
+  .winbtns button:hover { background: rgba(70, 90, 125, .45); color: var(--txt); }
+  .winbtns #wClose:hover { background: #c0392b; color: #fff; }
+
+  /* ---------- main ---------- */
+  main { flex: 1 1 auto; display: flex; gap: 16px; padding-top: 10px; min-height: 0; }
+
+  aside { flex: 0 0 198px; overflow-y: auto; overflow-x: hidden; padding-right: 5px; }
+  .savebtn {
+    width: 100%; height: 27px; margin-bottom: 9px; border-radius: 8px; cursor: pointer;
+    background: rgba(30, 37, 51, .6); border: 1px dashed rgba(128,156,200,.28);
+    color: var(--dim); font: inherit; font-size: 12px; transition: .14s;
+  }
+  .savebtn:hover { color: var(--acc); border-color: rgba(91,140,255,.6); background: rgba(40,58,96,.4); }
+
+  .grp {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 10.5px; color: #5f6c82; letter-spacing: .4px;
+    margin: 9px 0 3px 4px; cursor: pointer;
+  }
+  .grp:first-of-type { margin-top: 0; }
+  .grp i { font-style: normal; font-size: 8px; transition: transform .16s; display: inline-block; }
+  .grp.closed i { transform: rotate(-90deg); }
+  .grp em { margin-left: auto; font-style: normal; font-size: 9.5px; color: #3b4557; }
+  .grp:hover { color: #8695ad; }
+
+  .fx {
+    display: flex; align-items: center; justify-content: space-between;
+    height: 26px; padding: 0 10px; border-radius: 8px; cursor: pointer;
+    color: var(--dim); font-size: 12.5px; margin-bottom: 2px;
+    border-left: 2px solid transparent;
+    transition: background .14s, padding-left .14s, color .14s, box-shadow .14s;
+  }
+  .fx:hover { background: rgba(60, 76, 104, .40); padding-left: 13px; color: #b9c6da; }
+  .fx.on {
+    background: linear-gradient(90deg, rgba(58, 84, 136, .75), rgba(40, 52, 78, .5));
+    color: var(--txt); border-left-color: var(--acc);
+    box-shadow: inset 0 0 0 1px rgba(91,140,255,.20), 0 2px 12px rgba(38,78,180,.22);
+  }
+  .fx span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .fx em { font-style: normal; font-size: 10.5px; color: #4b566a; flex: 0 0 auto; margin-left: 8px; }
+  .fx.on em { color: #8fb4ff; }
+
+  .stage {
+    flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column;
+    padding: 13px 16px 10px; border-radius: 14px;
+    background: linear-gradient(158deg, rgba(48, 60, 84, .40) 0%, rgba(18, 23, 32, .78) 55%, rgba(12, 16, 23, .85) 100%);
+    border: 1px solid rgba(130, 160, 210, .12);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.09), inset 0 -30px 60px rgba(0,0,0,.22),
+                0 14px 40px rgba(0,0,0,.45);
+  }
+  .stage .cap { color: var(--dim); font-size: 11px; display: flex; gap: 9px; align-items: center; }
+  .stage .cap em { font-style: normal; color: #4f5b70; }
+  #cv { flex: 1 1 auto; width: 100%; min-height: 0; }
+
+  /* ---------- footer ---------- */
+  footer { flex: 0 0 auto; padding-top: 12px; display: flex; flex-direction: column; gap: 9px; }
+  .row { display: flex; align-items: center; gap: 9px; min-height: 30px; }
+  .row > label { flex: 0 0 44px; color: var(--dim); font-size: 12px; }
+
+  .sw { display: flex; gap: 7px; }
+  .chip {
+    width: 32px; height: 32px; border-radius: 8px; cursor: pointer; position: relative;
+    border: 1px solid rgba(255,255,255,.16); overflow: hidden; flex: 0 0 auto;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.25), 0 2px 8px rgba(0,0,0,.35);
+    transition: transform .12s, box-shadow .12s;
+  }
+  .chip:hover {
+    transform: translateY(-2px);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.35), 0 6px 16px rgba(0,0,0,.45);
+  }
+  .chip input { opacity: 0; width: 100%; height: 100%; cursor: pointer; }
+  .chip.add {
+    background: transparent; border: 1px dashed rgba(128,156,200,.3); color: var(--dim);
+    display: flex; align-items: center; justify-content: center; font-size: 15px; box-shadow: none;
+  }
+  .mini {
+    width: 28px; height: 28px; border-radius: 7px; cursor: pointer; flex: 0 0 auto;
+    background: linear-gradient(180deg, rgba(42, 52, 70, .9), rgba(24, 30, 42, .9));
+    border: 1px solid var(--line); color: var(--dim);
+    font: inherit; font-size: 13px; transition: .12s;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+  }
+  .mini:hover { color: var(--txt); border-color: rgba(140,170,220,.35); }
+  .mini.on { color: var(--acc); border-color: rgba(91,140,255,.55); }
+  .mini:disabled { opacity: .28; cursor: default; }
+  .mini.wide { width: 78px; font-size: 12px; }
+
+  #frames { display: flex; gap: 4px; flex-wrap: nowrap; overflow-x: auto; max-width: 400px; }
+  .fr {
+    width: 26px; height: 26px; border-radius: 7px; flex: 0 0 auto; cursor: pointer;
+    background: rgba(30, 37, 51, .8); border: 1px solid var(--line); color: var(--dim);
+    font: inherit; font-size: 11px; font-variant-numeric: tabular-nums;
+  }
+  .fr.on { border-color: var(--acc); color: var(--acc); background: rgba(40,58,96,.65); }
+  .hint { color: #4a5466; font-size: 11px; }
+
+  .sl { flex: 1 1 auto; display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .sl label { flex: 0 0 36px; color: var(--dim); font-size: 12px; }
+  .sl input[type=range] {
+    flex: 1 1 auto; min-width: 70px; height: 20px; -webkit-appearance: none; background: transparent; cursor: pointer;
+  }
+  .sl input[type=range]::-webkit-slider-runnable-track {
+    height: 5px; border-radius: 3px;
+    background: linear-gradient(90deg, rgba(91,140,255,.5), rgba(60,72,96,.55));
+  }
+  .sl input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 14px; height: 14px; margin-top: -4.5px;
+    border-radius: 50%; background: #fff; box-shadow: 0 0 0 3px rgba(91,140,255,.28), 0 1px 4px rgba(0,0,0,.5);
+  }
+  .sl span { flex: 0 0 36px; text-align: right; color: var(--dim); font-size: 11px; font-variant-numeric: tabular-nums; }
+
+  /* ---------- modal ---------- */
+  .overlay {
+    position: fixed; inset: 0; z-index: 99;
+    background: rgba(6, 9, 14, .62);
+    display: flex; align-items: center; justify-content: center;
+    animation: fade .13s ease;
+  }
+  @keyframes fade { from { opacity: 0 } to { opacity: 1 } }
+  .dlg {
+    width: 330px; padding: 20px 20px 16px; border-radius: 15px;
+    background: linear-gradient(165deg, #1a2130, #12161f);
+    border: 1px solid rgba(130,160,210,.18);
+    box-shadow: 0 26px 64px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.06);
+    animation: pop .15s ease;
+  }
+  @keyframes pop { from { transform: scale(.96); opacity: .6 } to { transform: scale(1); opacity: 1 } }
+  .dlg h3 { font-size: 14px; font-weight: 600; margin-bottom: 7px; }
+  .dlg p { font-size: 12.5px; color: var(--dim); line-height: 1.65; }
+  .dlg input {
+    width: 100%; margin-top: 13px; height: 32px; padding: 0 10px; border-radius: 8px;
+    background: rgba(12,16,23,.9); border: 1px solid rgba(128,156,200,.22);
+    color: var(--txt); font: inherit; font-size: 13px; outline: none;
+  }
+  .dlg input:focus { border-color: rgba(91,140,255,.7); }
+  .dlg .btns { display: flex; gap: 8px; justify-content: flex-end; margin-top: 18px; }
+  .dlg button {
+    height: 30px; padding: 0 16px; border-radius: 8px; cursor: pointer;
+    font: inherit; font-size: 12.5px; border: 1px solid transparent; transition: .13s;
+  }
+  .dlg .ghost { background: rgba(30,37,51,.9); border-color: var(--line); color: var(--dim); }
+  .dlg .ghost:hover { color: var(--txt); border-color: rgba(140,170,220,.35); }
+  .dlg .primary { background: linear-gradient(180deg, #4f83ff, #3568dc); color: #fff; }
+  .dlg .primary:hover { filter: brightness(1.1); }
+
+  ::-webkit-scrollbar { width: 7px; height: 7px; }
+  ::-webkit-scrollbar-thumb { background: rgba(80, 98, 128, .5); border-radius: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+
+  .swgrid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 7px; margin-top: 14px; }
+  .swc {
+    aspect-ratio: 1 / 1; border-radius: 7px; cursor: pointer;
+    border: 1px solid rgba(255,255,255,.13); transition: transform .1s;
+  }
+  .swc:hover { transform: scale(1.12); }
+  .swc.on { outline: 2px solid var(--acc); outline-offset: 2px; }
+  .swmore {
+    margin-top: 12px; width: 100%; height: 30px; border-radius: 8px; cursor: pointer;
+    background: rgba(30,37,51,.9); border: 1px solid var(--line); color: var(--dim);
+    font: inherit; font-size: 12.5px;
+  }
+  .swmore:hover { color: var(--txt); border-color: rgba(140,170,220,.35); }
+  .toast {
+    position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%);
+    padding: 9px 18px; border-radius: 10px; font-size: 12.5px; z-index: 200;
+    background: rgba(24, 30, 42, .96); border: 1px solid rgba(130,160,210,.22);
+    color: var(--txt); box-shadow: 0 12px 32px rgba(0,0,0,.55);
+    transition: opacity .45s; pointer-events: none;
+  }
+  .ctxmenu {
+    position: fixed; z-index: 120; min-width: 150px; padding: 5px;
+    background: #171d28; border: 1px solid rgba(130,160,210,.18); border-radius: 10px;
+    box-shadow: 0 16px 40px rgba(0,0,0,.55);
+    animation: fade .1s ease;
+  }
+  .ctxitem {
+    padding: 7px 11px; border-radius: 7px; font-size: 12.5px; color: var(--dim); cursor: pointer;
+  }
+  .ctxitem:hover { background: rgba(60, 80, 112, .55); color: var(--txt); }
+  .ctxitem.danger:hover { background: rgba(180, 60, 50, .38); color: #ff9a8f; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header id="titlebar">
+    <div class="brand"><b>KeyLED</b><span>WIN 60 HE</span></div>
+    <div class="status" id="status"><i></i><span id="stext">连接中</span></div>
+    <div class="acts">
+      <button id="bReset" title="恢复出厂设置">恢复默认</button>
+      <button id="bPause">暂停</button>
+      <button id="bAuto">开机自启 关</button>
+    </div>
+    <div class="winbtns">
+      <button id="wMin" title="最小化">–</button>
+      <button id="wMax" title="最大化">□</button>
+      <button id="wClose" title="收进托盘">×</button>
+    </div>
+  </header>
+
+  <main>
+    <aside>
+      <button class="savebtn" id="bSavePreset">+ 存为预设</button>
+      <div id="fxlist"></div>
+    </aside>
+    <section class="stage">
+      <div class="cap"><span>实时预览</span><em id="fname"></em></div>
+      <canvas id="cv"></canvas>
+    </section>
+  </main>
+
+  <footer>
+    <div class="row">
+      <label>调色板</label>
+      <div class="sw" id="sw"></div>
+      <button class="mini" id="bDel" title="删除最后一个颜色">−</button>
+      <button class="mini" id="bRecolor" title="恢复此效果的默认配色">↺</button>
+      <span class="hint" id="palHint"></span>
+    </div>
+
+    <div class="row" id="frameRow" style="display:none">
+      <label>帧</label>
+      <div id="frames"></div>
+      <button class="mini" id="bPlay" title="播放 / 停止（多帧时可用）">▶</button>
+      <button class="mini" id="bFrameAdd" title="加一帧（复制当前帧）">+</button>
+      <button class="mini" id="bFrameDel" title="删除当前帧">−</button>
+      <button class="mini" id="bClear" title="清空当前帧">清帧</button>
+      <button class="mini wide" id="bClearAll" title="清空画板所有帧">清空全部</button>
+      <span class="hint">左键涂色 · 右键擦除</span>
+    </div>
+
+    <div class="row">
+      <div class="sl">
+        <label>亮度</label><input type="range" id="rBright" min="0" max="100" value="100"><span id="vBright">100%</span>
+      </div>
+      <div class="sl">
+        <label>速度</label><input type="range" id="rSpeed" min="0" max="100" value="27"><span id="vSpeed">100%</span>
+      </div>
+      <button id="bDir" class="mini wide" title="波浪 / 彩虹 / 涟漪 的方向">方向 →</button>
+    </div>
+  </footer>
+</div>
+
+<script>
+/* KeyLED page.
+
+   It draws and issues commands, nothing more: the lights are driven by the
+   Python engine on a thread of its own, so this page may be hidden,
+   throttled or frozen without the keyboard noticing.
+
+     board     key geometry and labels; ROWS must match ROWS in keyled.py
+     canvas    preview of the frame the engine last rendered
+     colour    colour names for tooltips
+     sync      engine state in S, frames in latest
+     sidebar   effects, built-in presets, user presets
+     controls  palette, frame strip, sliders
+     modal     dialog, colour picker, context menu, toast
+     events    click handlers
+     boot      timers
+
+   Every command is followed by a refresh (see act()), so the page shows what
+   the engine actually did rather than what it hopes happened. */
+
+/* ---------------- board ---------------- */
+const ROWS = [
+  [1,1,1,1,1,1,1,1,1,1,1,1,1,2],
+  [1.5,1,1,1,1,1,1,1,1,1,1,1,1,1.5],
+  [1.75,1,1,1,1,1,1,1,1,1,1,1,2.25],
+  [2.25,1,1,1,1,1,1,1,1,1,1,2.75],
+  [1.25,1.25,1.25,6.25,1.25,1.25,1.25,1.25]
+];
+const NKEY = 61, UNITS = 15, ROW_PITCH = 1.14;
+const KX = [], KW = [], KR = [];
+ROWS.forEach((row, r) => { let x = 0; row.forEach(w => { KX.push(x); KW.push(w); KR.push(r); x += w; }); });
+
+const KEY_LABELS = [
+  ["Esc", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "=", "⌫"],
+  ["⇥", "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "[", "]", "\\"],
+  ["⇪", "A", "S", "D", "F", "G", "H", "J", "K", "L", ";", "'", "⏎"],
+  ["⇧", "Z", "X", "C", "V", "B", "N", "M", ",", ".", "/", "⇧"],
+  ["Ctrl", "Win", "Alt", "", "Alt", "Menu", "Ctrl", "Fn"]
+];
+const LABELS = [];
+KEY_LABELS.forEach(r => r.forEach(l => LABELS.push(l)));
+
+const $ = id => document.getElementById(id);
+const api = () => window.pywebview.api;
+
+const cv = $('cv');
+const ctx = cv.getContext('2d');
+
+/* ---------------- colour names ---------------- */
+const CN_COLORS = [
+  ['#000000', '黑'], ['#1a1a1a', '炭黑'], ['#3a4152', '深灰'], ['#7a8496', '灰'],
+  ['#aab4c4', '银灰'], ['#e6ecf6', '冷白'], ['#ffffff', '白'],
+  ['#ff0000', '正红'], ['#f31233', '朱红'], ['#ff2d55', '玫红'], ['#ff4d6d', '粉红'],
+  ['#ff8a3d', '橘'], ['#ff7a18', '橙'], ['#ff9a00', '琥珀'], ['#ffd166', '明黄'],
+  ['#ffe066', '鹅黄'], ['#ebff00', '柠檬'], ['#a3ff12', '青柠'], ['#2ecc71', '草绿'],
+  ['#00e676', '翠绿'], ['#12d18e', '翡翠'], ['#5ee0a0', '薄荷'], ['#00d4c8', '青碧'],
+  ['#22d3ee', '湖蓝'], ['#00b4ff', '天蓝'], ['#5b8cff', '矢车菊'], ['#3d7dff', '宝蓝'],
+  ['#0a3d62', '藏蓝'], ['#7c4dff', '紫罗兰'], ['#b06bff', '薰衣草'],
+  ['#e040fb', '品红'], ['#ff4dd2', '桃红'], ['#8b4513', '棕'], ['#4b2e1e', '深棕']
+];
+
+function hexToRgb(h) {
+  h = (h || '#000').replace('#', '');
+  if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+  const n = parseInt(h, 16) || 0;
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+function colorName(h) {
+  // the nearest of the named colours, by plain RGB distance
+  const c = hexToRgb(h);
+  let best = '自定义', bd = 1e9;
+  for (let i = 0; i < CN_COLORS.length; i++) {
+    const d = hexToRgb(CN_COLORS[i][0]);
+    const dist = (c[0] - d[0]) * (c[0] - d[0]) + (c[1] - d[1]) * (c[1] - d[1]) + (c[2] - d[2]) * (c[2] - d[2]);
+    if (dist < bd) { bd = dist; best = CN_COLORS[i][1]; }
+  }
+  return best;
+}
+
+/* ---------------- canvas ---------------- */
+let geo = { w: 600, h: 300, u: 30, ox: 0, oy: 0 };   // key unit size and where the board sits
+
+function fit() {
+  const r = cv.getBoundingClientRect();
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  cv.width = Math.max(1, Math.round(r.width * dpr));
+  cv.height = Math.max(1, Math.round(r.height * dpr));
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { w: r.width, h: r.height };
+}
+
+function layout() {
+  const g = fit();
+  const u = Math.min((g.w - 8) / UNITS, (g.h - 8) / (5 * ROW_PITCH));
+  geo = { w: g.w, h: g.h, u, ox: (g.w - UNITS * u) / 2, oy: (g.h - 5 * ROW_PITCH * u) / 2 };
+}
+
+function rrect(x, y, w, h, r) {
+  r = Math.max(0.5, Math.min(r, w / 2, h / 2));
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+function draw() {
+  ctx.clearRect(0, 0, geo.w, geo.h);
+  const u = geo.u, gap = u * 0.09, r = Math.max(2.5, u * 0.16);
+  ctx.font = Math.max(7, Math.round(u * 0.27)) + 'px "Microsoft YaHei UI", "Segoe UI", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  for (let i = 0; i < NKEY; i++) {
+    const x = geo.ox + KX[i] * u + gap / 2;
+    const y = geo.oy + KR[i] * u * ROW_PITCH + gap / 2;
+    const w = KW[i] * u - gap;
+    const h = u * ROW_PITCH - gap;
+
+    let R = 0, G = 0, B = 0, lit = false;
+    if (latest) {
+      R = latest[i * 3]; G = latest[i * 3 + 1]; B = latest[i * 3 + 2];
+      lit = (R + G + B) >= 10;
+    }
+
+    rrect(x, y, w, h, r);
+
+    if (lit) {
+      ctx.save();
+      ctx.shadowColor = `rgba(${R},${G},${B},0.8)`;
+      ctx.shadowBlur = Math.min(13, Math.max(6, u * 0.3));
+      ctx.fillStyle = `rgb(${R},${G},${B})`;
+      ctx.fill();
+      ctx.restore();
+
+      const hl = ctx.createLinearGradient(x, y, x, y + h * 0.66);
+      hl.addColorStop(0, 'rgba(255,255,255,.46)');
+      hl.addColorStop(0.5, 'rgba(255,255,255,.10)');
+      hl.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = hl;
+      ctx.fill();
+
+      ctx.strokeStyle = 'rgba(255,255,255,.26)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    } else {
+      const gl = ctx.createLinearGradient(x, y, x, y + h);
+      gl.addColorStop(0, 'rgba(190,215,255,.085)');
+      gl.addColorStop(0.42, 'rgba(160,190,235,.03)');
+      gl.addColorStop(1, 'rgba(6,9,14,.28)');
+      ctx.fillStyle = gl;
+      ctx.fill();
+
+      ctx.strokeStyle = 'rgba(140,175,225,.14)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+
+    const lb = LABELS[i];
+    if (lb) {
+      ctx.fillStyle = lit ? 'rgba(0,0,0,.58)' : 'rgba(178,200,232,.46)';
+      ctx.fillText(lb, x + w / 2, y + h / 2 + 0.5);
+    }
+  }
+}
+
+function keyAt(clientX, clientY) {
+  const r = cv.getBoundingClientRect();
+  if (Math.abs(r.width - geo.w) > 1 || Math.abs(r.height - geo.h) > 1) layout();
+  const x = clientX - r.left, y = clientY - r.top;
+  const u = geo.u;
+  for (let i = 0; i < NKEY; i++) {
+    const kx = geo.ox + KX[i] * u, ky = geo.oy + KR[i] * u * ROW_PITCH;
+    if (x >= kx && x <= kx + KW[i] * u && y >= ky && y <= ky + u * ROW_PITCH) return i;
+  }
+  return -1;
+}
+
+/* ---------------- sync ---------------- */
+let S = null;            // the engine's state, as of the last refresh
+let latest = null;       // the frame the engine last rendered: 61 x 3 values
+let fetching = false;    // a frame request is in flight
+let refreshSeq = 0;      // counts refreshes, so a slow old answer cannot overwrite a newer one
+
+let collapsed = {};
+try { collapsed = JSON.parse(localStorage.getItem('kl_collapse') || '{"official":true}'); } catch (e) { collapsed = { official: true }; }
+if (!collapsed || typeof collapsed !== 'object') collapsed = { official: true };
+
+async function pullFrame() {
+  if (!window.pywebview || fetching) return;
+  fetching = true;
+  try {
+    const f = await api().frame();
+    if (f && f.length === NKEY * 3) { latest = f; draw(); }
+  } catch (e) {
+  } finally {
+    fetching = false;
+  }
+}
+
+async function refresh() {
+  const seq = ++refreshSeq;
+  const s = await api().get_state();
+  if (seq !== refreshSeq) return;
+  S = s;
+  renderFxList();
+  renderSwatches();
+  renderFrames();
+  renderControls();
+}
+
+function act(promise) {
+  // a command, then the refresh that shows its result
+  return Promise.resolve(promise).then(refresh);
+}
+
+/* ---------------- sidebar ---------------- */
+function fxLabel(id) {
+  if (id === 'love') return (S.love_frames || 268) + ' 帧';
+  if (id === 'custom') return (S.frames || 1) + ' 帧';
+  return '实时';
+}
+
+function groupHead(title, count, hint, closed, onToggle) {
+  const head = document.createElement('div');
+  head.className = closed ? 'grp closed' : 'grp';
+  head.title = hint || '';
+  const ic = document.createElement('i'); ic.textContent = '▾';
+  const tx = document.createElement('span'); tx.textContent = title;
+  const ct = document.createElement('em'); ct.textContent = count;
+  head.appendChild(ic); head.appendChild(tx); head.appendChild(ct);
+  head.onclick = onToggle || null;
+  return head;
+}
+
+function fxRow(name, tag, title, on, onClick, onContext) {
+  const d = document.createElement('div');
+  d.className = 'fx' + (on ? ' on' : '');
+  const sp = document.createElement('span'); sp.textContent = name;
+  const em = document.createElement('em'); em.textContent = tag;
+  d.appendChild(sp); d.appendChild(em);
+  d.title = title;
+  d.onclick = onClick;
+  d.oncontextmenu = onContext;
+  return d;
+}
+
+function toggleGroup(id) {
+  collapsed[id] = !collapsed[id];
+  try { localStorage.setItem('kl_collapse', JSON.stringify(collapsed)); } catch (e) {}
+  renderFxList();
+}
+
+function bakeMenu(kind, i, nm) {
+  return e => {
+    e.preventDefault();
+    ctxMenu(e.clientX, e.clientY, [
+      ['追加到画板（串联）…', () => bakeDialog(kind, i, nm, 'append')],
+      ['叠加到画板（合并）…', () => bakeDialog(kind, i, nm, 'merge')]
+    ]);
+  };
+}
+
+async function selectEffect(id) {
+  S.effect = id;                    // highlight at once, the engine is a round trip away
+  renderFxList(); renderFrames();
+  await api().set_effect(id);
+  await refresh();                  // each effect brings its own palette: show that one, not the last one's
+}
+
+function renderFxList() {
+  const box = $('fxlist');
+  box.innerHTML = '';
+  const by = {};
+  (S.effects || []).forEach(e => { (by[e[3]] = by[e[3]] || []).push(e); });
+
+  (S.groups || []).forEach(g => {
+    const items = by[g[0]] || [];
+    if (!items.length) return;
+    const gid = g[0], closed = !!collapsed[gid];
+    box.appendChild(groupHead(g[1], items.length, g[2], closed, () => toggleGroup(gid)));
+    if (closed) return;
+    items.forEach(([id, name, desc]) => {
+      box.appendChild(fxRow(name, fxLabel(id), desc + ' · 右键烘焙成帧', S.effect === id,
+        () => selectEffect(id),
+        e => { e.preventDefault(); bakeEffectDialog(id, name); }));
+    });
+  });
+
+  if (S.builtin && S.builtin.length) {
+    box.appendChild(groupHead('内置预设', S.builtin.length, '点一下应用 · 右键把它的帧追加或叠加到画板'));
+    S.builtin.forEach((nm, i) => {
+      box.appendChild(fxRow(nm, '内置', '点击应用 · 右键追加/叠加到画板', false,
+        () => act(api().apply_builtin(i)),
+        bakeMenu('builtin', i, nm)));
+    });
+  }
+
+  if (S.presets && S.presets.length) {
+    box.appendChild(groupHead('我的预设', S.presets.length, '点击应用 · 右键删除'));
+    S.presets.forEach((nm, i) => {
+      box.appendChild(fxRow(nm, '预设', '点击应用 · 右键删除', false,
+        () => act(api().apply_preset(i)),
+        e => {
+          e.preventDefault();
+          ctxMenu(e.clientX, e.clientY, [
+            ['追加到画板（串联）…', () => bakeDialog('user', i, nm, 'append')],
+            ['叠加到画板（合并）…', () => bakeDialog('user', i, nm, 'merge')],
+            ['删除预设', async () => {
+              const ok = await dialog({ title: '删除预设', text: '确定删除「' + nm + '」吗？' });
+              if (!ok) return;
+              S.presets = await api().del_preset(i);
+              renderFxList();
+            }, true]
+          ]);
+        }));
+    });
+  }
+
+  renderFname();
+}
+
+function renderFname() {
+  const cur = (S.effects || []).find(e => e[0] === S.effect);
+  let t = cur ? cur[1] : '';
+  if (S.effect === 'beat') {
+    if (S.audio_live) t += ' · 音频：' + (S.audio_dev || '默认设备');
+    else if (S.audio_err) t += ' · 打不开音频设备';
+    else t += ' · 没收到声音（检查录音设备）';
+  }
+  $('fname').textContent = t;
+}
+
+function renderFrames() {
+  const row = $('frameRow');
+  const on = S.effect === 'custom';
+  row.style.display = on ? 'flex' : 'none';
+  if (!on) return;
+  const box = $('frames');
+  box.innerHTML = '';
+  for (let i = 0; i < S.frames; i++) {
+    const b = document.createElement('button');
+    b.className = 'fr' + (i === S.frame ? ' on' : '');
+    b.textContent = i + 1;
+    b.onclick = () => act(api().set_frame(i));
+    box.appendChild(b);
+  }
+  $('bFrameDel').disabled = S.frames <= 1;
+  $('bFrameAdd').disabled = S.frames >= (S.max_frames || 600);
+  const pb = $('bPlay');
+  pb.textContent = S.frame_play ? '⏸' : '▶';
+  pb.className = 'mini' + (S.frame_play ? ' on' : '');
+  pb.disabled = S.frames < 2;
+}
+
+/* ---------------- controls ---------------- */
+function renderSwatches() {
+  const box = $('sw');
+  box.innerHTML = '';
+  S.colors.forEach((c, i) => {
+    const d = document.createElement('div');
+    d.className = 'chip';
+    d.style.background = c;
+    d.title = colorName(c) + '  ' + c.toUpperCase();
+    d.onclick = async () => {
+      const v = await colorPicker(c);
+      if (!v) return;
+      S.colors[i] = v;
+      await api().set_color(i, v);
+      renderSwatches();
+    };
+    box.appendChild(d);
+  });
+  if (S.colors.length < 5) {
+    const a = document.createElement('div');
+    a.className = 'chip add';
+    a.textContent = '+';
+    a.onclick = () => act(api().add_color());
+    box.appendChild(a);
+  }
+  $('bDel').disabled = S.colors.length <= 1;
+  $('palHint').textContent = S.colors.map(c => colorName(c)).join(' · ');
+}
+
+function renderControls() {
+  const bPause = $('bPause');
+  bPause.textContent = S.paused ? '继续' : '暂停';
+  bPause.className = S.paused ? 'warn' : '';
+
+  const bAuto = $('bAuto');
+  bAuto.textContent = S.autostart ? '开机自启 开' : '开机自启 关';
+  bAuto.className = S.autostart ? 'on' : '';
+
+  const wMax = $('wMax');
+  wMax.textContent = S.maxed ? '❐' : '□';
+  wMax.title = S.maxed ? '还原' : '最大化';
+
+  $('bDir').textContent = S.dir > 0 ? '方向 →' : '方向 ←';
+
+  $('status').className = 'status' + (S.connected ? ' on' : '');
+  $('stext').textContent = S.connected ? '已连接' : '等待键盘';
+
+  $('rBright').value = Math.round(S.bright * 100);
+  $('vBright').textContent = Math.round(S.bright * 100) + '%';
+  // the slider is 0..100, speed is 25%..300%
+  $('rSpeed').value = Math.round((S.speed - 0.25) / 2.75 * 100);
+  $('vSpeed').textContent = Math.round(S.speed * 100) + '%';
+}
+
+/* ---------------- modal ---------------- */
+function dialog(o) {
+  // resolves with true/false, or with the typed text / null when o.input is set
+  return new Promise(resolve => {
+    const ov = document.createElement('div');
+    ov.className = 'overlay';
+    const box = document.createElement('div');
+    box.className = 'dlg';
+
+    const h = document.createElement('h3');
+    h.textContent = o.title || '';
+    box.appendChild(h);
+
+    if (o.text) {
+      const p = document.createElement('p');
+      p.textContent = o.text;
+      box.appendChild(p);
+    }
+
+    let inp = null;
+    if (o.input !== undefined) {
+      inp = document.createElement('input');
+      inp.value = o.input;
+      inp.maxLength = 24;
+      box.appendChild(inp);
+    }
+
+    const btns = document.createElement('div');
+    btns.className = 'btns';
+    const bNo = document.createElement('button');
+    bNo.className = 'ghost';
+    bNo.textContent = o.cancel || '取消';
+    const bOk = document.createElement('button');
+    bOk.className = 'primary';
+    bOk.textContent = o.ok || '确定';
+    btns.appendChild(bNo);
+    btns.appendChild(bOk);
+    box.appendChild(btns);
+    ov.appendChild(box);
+    document.body.appendChild(ov);
+
+    const cancel = () => close(inp ? null : false);
+    const confirm = () => close(inp ? (inp.value.trim() || o.input) : true);
+    const onKey = e => {
+      if (e.key === 'Escape') cancel();
+      else if (e.key === 'Enter') confirm();
+    };
+    const close = val => {
+      document.removeEventListener('keydown', onKey);
+      ov.remove();
+      resolve(val);
+    };
+    document.addEventListener('keydown', onKey);
+
+    bNo.onclick = cancel;
+    bOk.onclick = confirm;
+    ov.onclick = e => { if (e.target === ov) cancel(); };
+
+    if (inp) { inp.focus(); inp.select(); } else bOk.focus();
+  });
+}
+
+const SWATCHES = [
+  '#ffffff', '#e6ecf6', '#aab4c4', '#7a8496', '#4a5568', '#2d3748', '#1a1a1a', '#000000',
+  '#ff2d55', '#f31233', '#ff4d4f', '#ff7a18', '#ff9a00', '#ffd166', '#ffe066', '#ebff00',
+  '#a3ff12', '#00e676', '#5ee0a0', '#12d18e', '#22d3ee', '#00b4ff', '#3d7dff', '#5b8cff',
+  '#7c4dff', '#b06bff', '#e040fb', '#ff4dd2', '#8b4513', '#0a3d62', '#2ecc71', '#c0392b'
+];
+
+function colorPicker(cur) {
+  return new Promise(resolve => {
+    const ov = document.createElement('div');
+    ov.className = 'overlay';
+    const box = document.createElement('div');
+    box.className = 'dlg';
+    box.style.width = '330px';
+
+    const h = document.createElement('h3');
+    h.textContent = '选择颜色';
+    box.appendChild(h);
+
+    const sub = document.createElement('p');
+    sub.textContent = '当前 ' + colorName(cur) + '  ' + cur.toUpperCase();
+    box.appendChild(sub);
+
+    const close = v => { document.removeEventListener('keydown', onKey); ov.remove(); resolve(v); };
+    const onKey = e => { if (e.key === 'Escape') close(null); };
+
+    const grid = document.createElement('div');
+    grid.className = 'swgrid';
+    SWATCHES.forEach(c => {
+      const d = document.createElement('div');
+      d.className = 'swc' + (c.toLowerCase() === String(cur).toLowerCase() ? ' on' : '');
+      d.style.background = c;
+      d.title = colorName(c);
+      d.onclick = () => close(c);
+      grid.appendChild(d);
+    });
+    box.appendChild(grid);
+
+    const more = document.createElement('button');
+    more.className = 'swmore';
+    more.textContent = '更多颜色…';
+    box.appendChild(more);
+
+    const inp = document.createElement('input');
+    inp.type = 'color';
+    inp.value = cur;
+    inp.style.display = 'none';
+    box.appendChild(inp);
+    more.onclick = () => inp.click();
+    inp.oninput = () => close(inp.value);
+
+    const btns = document.createElement('div');
+    btns.className = 'btns';
+    const cancel = document.createElement('button');
+    cancel.className = 'ghost';
+    cancel.textContent = '取消';
+    btns.appendChild(cancel);
+    box.appendChild(btns);
+
+    ov.appendChild(box);
+    document.body.appendChild(ov);
+
+    document.addEventListener('keydown', onKey);
+    cancel.onclick = () => close(null);
+    ov.onclick = e => { if (e.target === ov) close(null); };
+  });
+}
+
+function ctxMenu(x, y, items) {
+  const old = document.querySelector('.ctxmenu');
+  if (old) old.remove();
+  const m = document.createElement('div');
+  m.className = 'ctxmenu';
+  items.forEach(it => {
+    const b = document.createElement('div');
+    b.className = 'ctxitem' + (it[2] ? ' danger' : '');
+    b.textContent = it[0];
+    b.onclick = () => { m.remove(); it[1](); };
+    m.appendChild(b);
+  });
+  m.style.left = x + 'px';
+  m.style.top = y + 'px';
+  document.body.appendChild(m);
+  const r = m.getBoundingClientRect();
+  if (r.right > window.innerWidth - 6) m.style.left = (window.innerWidth - r.width - 8) + 'px';
+  if (r.bottom > window.innerHeight - 6) m.style.top = (window.innerHeight - r.height - 8) + 'px';
+  setTimeout(() => {
+    document.addEventListener('mousedown', function off(ev) {
+      if (!m.contains(ev.target)) {
+        m.remove();
+        document.removeEventListener('mousedown', off);
+      }
+    });
+  }, 10);
+}
+
+function toast(msg) {
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; }, 1400);
+  setTimeout(() => { t.remove(); }, 1900);
+}
+
+function askFrames(title, text, ok) {
+  // how many frames to bake; 0 when the user backs out or types nothing usable
+  return dialog({ title, text, input: '10', ok }).then(v => {
+    if (v === null) return 0;
+    const n = parseInt(v, 10);
+    return (n && n >= 1) ? n : 0;
+  });
+}
+
+async function bakeEffectDialog(id, name) {
+  const n = await askFrames('烘焙成帧',
+    '用当前颜色和速度，把「' + name + '」渲染成固定帧并追加到画板，之后可以在画板里逐帧修改。', '追加');
+  if (!n) return;
+  const total = await api().bake_canvas(id, n);
+  await refresh();
+  toast('已追加 ' + n + ' 帧 · 画板共 ' + total + ' 帧');
+}
+
+async function bakeDialog(kind, idx, nm, mode) {
+  const merge = mode === 'merge';
+  const n = await askFrames(merge ? '叠加到画板' : '追加到画板',
+    merge
+      ? '与画板已有的帧逐键合并，同一位置取较亮的颜色。两个预设按键不重叠时，会在同一帧上同时亮起来。'
+      : '把「' + nm + '」渲染成帧，接在当前画板末尾。可以连着追加多个，拼成一条长动画。',
+    merge ? '叠加' : '追加');
+  if (!n) return;
+  const total = await api().bake_preset(kind, idx, n, merge);
+  await refresh();
+  toast((merge ? '已叠加 ' : '已追加 ') + n + ' 帧 · 画板共 ' + total + ' 帧');
+}
+
+/* ---------------- events ---------------- */
+$('bPause').onclick = async () => {
+  S.paused = !S.paused; renderControls();
+  await api().set_param('paused', S.paused);
+};
+$('bAuto').onclick = async () => {
+  S.autostart = await api().toggle_autostart(); renderControls();
+};
+$('bDir').onclick = async () => {
+  S.dir = -S.dir; renderControls();
+  await api().set_param('dir', S.dir);
+};
+$('wMin').onclick = () => api().minimize();
+$('wClose').onclick = () => api().close_to_tray();
+$('wMax').onclick = async () => {
+  S.maxed = await api().maximize();
+  renderControls();
+  // the window animates for a moment; re-fit once it has settled
+  setTimeout(() => { layout(); draw(); }, 160);
+  setTimeout(() => { layout(); draw(); }, 460);
+};
+$('bReset').onclick = async () => {
+  const ok = await dialog({ title: '恢复默认', text: '当前灯效、颜色和画板内容都会清空，确定吗？' });
+  if (ok) await act(api().reset());
+};
+$('bDel').onclick = () => act(api().del_color());
+$('bRecolor').onclick = async () => {
+  const cur = (S.effects || []).find(e => e[0] === S.effect);
+  await api().reset_effect();
+  await refresh();
+  toast('已恢复「' + (cur ? cur[1] : '当前效果') + '」的默认配色');
+};
+$('bFrameAdd').onclick = () => act(api().add_frame());
+$('bFrameDel').onclick = () => act(api().del_frame());
+$('bClear').onclick = () => act(api().clear_frame());
+$('bClearAll').onclick = async () => {
+  const ok = await dialog({
+    title: '清空画板',
+    text: '所有帧都会被清空，只留下 1 张空白帧。此操作无法撤销。'
+  });
+  if (!ok) return;
+  await act(api().clear_all_frames());
+  toast('画板已清空');
+};
+$('bPlay').onclick = async () => {
+  S.frame_play = await api().toggle_frame_play();
+  renderFrames();
+};
+$('bSavePreset').onclick = async () => {
+  const n = (S.presets ? S.presets.length : 0) + 1;
+  const nm = await dialog({
+    title: '存为预设',
+    text: '把当前的灯效、颜色、亮度和画板帧整套保存下来。',
+    input: '预设 ' + n,
+    ok: '保存'
+  });
+  if (nm === null) return;
+  S.presets = await api().save_preset(nm);
+  renderFxList();
+};
+
+function throttled(fn, wait) {
+  // Fires at once, then at most once per `wait` ms, and always once more with
+  // the last arguments. A dragged slider produces far more events than there
+  // are frames to show, and every call costs a thread on the Python side.
+  let last = 0, timer = null, args = null;
+  return function () {
+    args = arguments;
+    const due = wait - (performance.now() - last);
+    if (timer === null && due <= 0) {
+      last = performance.now(); args = null; fn.apply(null, arguments);
+    } else if (timer === null) {
+      timer = setTimeout(() => {
+        timer = null; last = performance.now();
+        const a = args; args = null; fn.apply(null, a);
+      }, due);
+    }
+  };
+}
+const sendParam = throttled((key, value) => { api().set_param(key, value); }, 40);
+
+$('rBright').oninput = e => {
+  S.bright = e.target.value / 100;
+  $('vBright').textContent = e.target.value + '%';
+  sendParam('bright', S.bright);
+};
+$('rSpeed').oninput = e => {
+  S.speed = 0.25 + e.target.value / 100 * 2.75;
+  $('vSpeed').textContent = Math.round(S.speed * 100) + '%';
+  sendParam('speed', S.speed);
+};
+
+$('titlebar').addEventListener('mousedown', e => {
+  if (e.button !== 0) return;
+  if (e.target.closest('button')) return;
+  api().start_drag();
+});
+
+function paintAt(e, erase) {
+  if (erase) e.preventDefault();
+  const i = keyAt(e.clientX, e.clientY);
+  if (i < 0) return;
+  act(api().paint_key(i, erase));
+}
+cv.addEventListener('click', e => paintAt(e, false));
+cv.addEventListener('contextmenu', e => paintAt(e, true));
+
+let lastW = 0, lastH = 0;
+function watchSize() {
+  if (window.innerWidth !== lastW || window.innerHeight !== lastH) {
+    lastW = window.innerWidth; lastH = window.innerHeight;
+    layout(); draw();
+  }
+}
+window.addEventListener('resize', watchSize);
+
+/* ---------------- boot ---------------- */
+function applyCursors() {
+  // Relative urls inside the stylesheet did not resolve under the webview host,
+  // so build one stylesheet with absolute urls derived from the document.
+  const b = location.href.replace(/[^/]*$/, '');
+  const el = document.createElement('style');
+  el.textContent =
+    'body{cursor:url("' + b + 'arrow.png") 0 0,default !important}' +
+    'button,.fx,.chip,.grp,.savebtn,.fr,.ctxitem,.mini,input,.grp i,.grp em{cursor:url("' + b + 'hand.png") 10 2,pointer !important}' +
+    '.dlg input{cursor:url("' + b + 'text.png") 16 14,text !important}' +
+    ':disabled{cursor:url("' + b + 'arrow.png") 0 0,default !important}';
+  document.head.appendChild(el);
+}
+
+async function pollStatus() {
+  // Picks up what other surfaces change: the tray menu, autostart, the
+  // keyboard coming and going. Deliberately cheap: no canvas, no presets.
+  if (!window.pywebview || !S) return;
+  const seq = refreshSeq;
+  try {
+    const s = await api().status();
+    if (seq !== refreshSeq) return;      // a refresh ran meanwhile and knows better
+    const fxChanged = s.effect !== S.effect;
+    if (fxChanged || s.connected !== S.connected || s.autostart !== S.autostart ||
+        s.paused !== S.paused || s.maxed !== S.maxed) {
+      S.connected = s.connected; S.autostart = s.autostart;
+      S.paused = s.paused; S.effect = s.effect; S.maxed = s.maxed;
+      if (fxChanged) { renderFxList(); renderFrames(); }
+      renderControls();
+    }
+    // the audio caption is live information: "no sound" one moment, a device the next
+    if (S.effect === 'beat' && (s.audio_live !== S.audio_live ||
+        s.audio_dev !== S.audio_dev || s.audio_err !== S.audio_err)) {
+      S.audio_live = s.audio_live; S.audio_dev = s.audio_dev; S.audio_err = s.audio_err;
+      renderFname();
+    }
+  } catch (e) {}
+}
+
+function boot() {
+  applyCursors();
+  layout();
+  draw();
+  refresh().then(() => { layout(); pullFrame(); });
+  setInterval(pullFrame, 55);
+  setInterval(watchSize, 250);
+  setInterval(pollStatus, 800);
+}
+
+if (window.pywebview) boot();
+else window.addEventListener('pywebviewready', boot);
+</script>
+</body>
+</html>

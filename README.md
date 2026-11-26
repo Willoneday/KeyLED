@@ -52,23 +52,6 @@ LOVE 动画共 268 帧、26.8 秒，每一帧每个键的颜色都是预先录�
 2. 双击 `KeyLED.exe`。程序没有数字签名，首次运行若出现 Windows 安全提示，点"更多信息"，再点"仍要运行"。
 3. 使用前请退出 A HUB，并关闭浏览器里打开的键盘网页。它们运行时会独占键盘，程序会显示"等待键盘"。
 
-### 从源码运行
-
-在仓库根目录执行：
-
-```bat
-pip install -r requirements.txt
-python app/keyled.py
-```
-
-### 自行打包
-
-```bat
-app\build-exe.bat
-```
-
-脚本会安装依赖并调用 PyInstaller，把程序、界面和素材打成一个 `KeyLED.exe`，放在仓库根目录。
-
 ## 使用说明
 
 ### 界面

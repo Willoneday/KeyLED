@@ -49,7 +49,7 @@ LOVE 动画共 268 帧、26.8 秒，每一帧每个键的颜色都是预先录�
 
 ### 直接运行
 
-1. 从 [Releases](/releases) 下载 `KeyLED-*-win64.zip` 并解压。仓库根目录的 `KeyLED.exe` 也可以直接使用。
+1. 从 [Releases](https://github.com/Willoneday/KeyLED/releases/) 下载 `KeyLED.exe` 。仓库根目录的 `KeyLED.exe` 也可以直接使用。
 2. 双击 `KeyLED.exe`。程序没有数字签名，首次运行若出现 Windows 安全提示，点"更多信息"，再点"仍要运行"。
 3. 使用前请退出 A HUB，并关闭浏览器里打开的键盘网页。它们运行时会独占键盘，程序会显示"等待键盘"。
 
@@ -181,10 +181,5 @@ Windows 会把托盘图标折叠进任务栏右侧的 `^` 溢出区。
 ## 许可证
 
 代码以 [MIT 许可证](LICENSE) 发布。
-
-以下素材来自第三方，不在 MIT 许可证范围内，再分发前请自行确认其授权：
-
-- 界面光标 `app/arrow.png`、`app/hand.png`、`app/text.png`，取自"割绳子"主题的第三方光标包。
-- 内置动画 `app/love.bin`，由厂商驱动 A HUB 导出的灯效数据转换而来。
 
 本项目是个人爱好作品，与键盘厂商无关。

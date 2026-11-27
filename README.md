@@ -42,14 +42,13 @@ LOVE 动画共 268 帧、26.8 秒，每一帧每个键的颜色都是预先录�
 | 操作系统 | Windows 10 或 Windows 11，64 位（实测 Windows 10 22H2） |
 | 键盘 | AULA WIN 60 HE，61 键。程序通过 HID 接口 `VID_2E3C / PID_C365 / MI_02` 与键盘通信 |
 | 直接运行 | 不需要其它依赖，不需要管理员权限，不需要联网 |
-| 从源码运行 | Python 3.11 及以上（实测 3.13），以及 [requirements.txt](requirements.txt) 中的库 |
 
 ## 安装与运行
 
 ### 直接运行
 
-1. 从 [Releases](https://github.com/Willoneday/KeyLED/releases/) 下载 `KeyLED.exe` 。仓库根目录的 `KeyLED.exe` 也可以直接使用。
-2. 双击 `KeyLED.exe`。程序没有数字签名，首次运行若出现 Windows 安全提示，点"更多信息"，再点"仍要运行"。
+1. 从 [Releases](https://github.com/Willoneday/KeyLED/releases/) 下载 `KeyLED.exe` 。
+2. 双击 `KeyLED.exe`运行即可。
 3. 使用前请退出 A HUB，并关闭浏览器里打开的键盘网页。它们运行时会独占键盘，程序会显示"等待键盘"。
 
 ## 使用说明
